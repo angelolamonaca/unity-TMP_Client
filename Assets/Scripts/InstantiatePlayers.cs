@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Text;
 using Models;
 using Newtonsoft.Json;
@@ -13,36 +14,66 @@ public class InstantiatePlayers : MonoBehaviour
     private void Start()
     {
         _player = GameObject.Find("PlayerArmature");
-        StartCoroutine(Upload());
+        StartCoroutine(UploadCurrentPlayer());
+        StartCoroutine(GetOtherPlayers());
     }
 
-    private static IEnumerator Upload()
+    private static IEnumerator UploadCurrentPlayer()
     {
         var position = _player.transform.position;
-        var character = new Character();
-        var newPosition = new Position();
-        newPosition.x = position.x;
-        newPosition.y = position.y;
-        newPosition.z = position.z;
-        character.position = newPosition;
-        character.id = 1;
+        var character = new Character(42, new Position(position.x,position.y,position.z));
         
         var jsonString = JsonUtility.ToJson(character);
         var formData = Encoding.UTF8.GetBytes(jsonString);
         
-        using var www = UnityWebRequest.Post("http://localhost:8080/character/add", "");
-        www.uploadHandler = new UploadHandlerRaw(formData); //body
-        www.SetRequestHeader("Content-Type", "application/json;charset=utf-8");
-        www.SetRequestHeader ("Content-Type", "application/json");
-        yield return www.SendWebRequest();
+        using var webRequest = UnityWebRequest.Post("http://localhost:8080/character/add", "");
+        webRequest.uploadHandler = new UploadHandlerRaw(formData); //body
+        webRequest.SetRequestHeader("Content-Type", "application/json;charset=utf-8");
+        webRequest.SetRequestHeader ("Content-Type", "application/json");
+        yield return webRequest.SendWebRequest();
 
-        if (www.result != UnityWebRequest.Result.Success)
+        switch (webRequest.result)
         {
-            Debug.Log(www.error);
+            case UnityWebRequest.Result.ConnectionError:
+            case UnityWebRequest.Result.DataProcessingError:
+                Debug.LogError(": Error: " + webRequest.error);
+                break;
+            case UnityWebRequest.Result.ProtocolError:
+                Debug.LogError(": HTTP Error: " + webRequest.error);
+                break;
+            case UnityWebRequest.Result.Success:
+                Debug.Log(": CurrentPlayerUploaded: " + webRequest.downloadHandler.text);
+                break;
+            case UnityWebRequest.Result.InProgress:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
-        else
+    }
+    
+    private static IEnumerator GetOtherPlayers()
+    {
+        using var webRequest = UnityWebRequest.Get("http://localhost:8080/world/get");
+        yield return webRequest.SendWebRequest();
+        
+        switch (webRequest.result)
         {
-            Debug.Log("Upload complete!");
+            case UnityWebRequest.Result.ConnectionError:
+            case UnityWebRequest.Result.DataProcessingError:
+                Debug.LogError(": Error: " + webRequest.error);
+                break;
+            case UnityWebRequest.Result.ProtocolError:
+                Debug.LogError(": HTTP Error: " + webRequest.error);
+                break;
+            case UnityWebRequest.Result.Success:
+                Debug.Log(": OtherPlayersReceived: " + webRequest.downloadHandler.text);
+                var world = JsonUtility.FromJson<World>(webRequest.downloadHandler.text);
+                Debug.Log(world.characterList[0]);
+                break;
+            case UnityWebRequest.Result.InProgress:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
     }
 }

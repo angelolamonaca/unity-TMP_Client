@@ -8,5 +8,11 @@ namespace Models
     {
         [SerializeField] public int id;
         [SerializeField] public Position position;
+
+        public Character(int id, Position position)
+        {
+            this.id = id;
+            this.position = position;
+        }
     }
 }
