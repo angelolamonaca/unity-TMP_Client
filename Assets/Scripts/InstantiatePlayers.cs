@@ -14,14 +14,14 @@ public class InstantiatePlayers : MonoBehaviour
     private void Start()
     {
         _player = GameObject.Find("PlayerArmature");
-        StartCoroutine(UploadCurrentPlayer());
-        StartCoroutine(GetOtherPlayers());
+        // StartCoroutine(UploadCurrentPlayer());
+        // StartCoroutine(GetOtherPlayers());
     }
 
     private static IEnumerator UploadCurrentPlayer()
     {
         var position = _player.transform.position;
-        var character = new Character(42, new Position(position.x, position.y, position.z));
+        var character = new User(42, new Position(position.x, position.y, position.z));
 
         var jsonString = JsonUtility.ToJson(character);
         var formData = Encoding.UTF8.GetBytes(jsonString);

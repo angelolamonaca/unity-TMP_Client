@@ -7,6 +7,6 @@ namespace Models
     [Serializable]
     public class World
     {
-        [SerializeField] public List<Character> characterList;
+        [SerializeField] public List<User> characterList;
     }
 }
